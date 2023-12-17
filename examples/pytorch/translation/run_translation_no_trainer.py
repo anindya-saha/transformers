@@ -57,7 +57,7 @@ from transformers.utils.versions import require_version
 
 
 # Will error if the minimal version of Transformers is not installed. Remove at your own risks.
-check_min_version("4.37.0.dev0")
+#check_min_version("4.36.1")
 
 logger = get_logger(__name__)
 require_version("datasets>=1.8.0", "To fix: pip install -r examples/pytorch/translation/requirements.txt")
@@ -69,7 +69,7 @@ MODEL_TYPES = tuple(conf.model_type for conf in MODEL_CONFIG_CLASSES)
 
 # Parsing input arguments
 def parse_args():
-    parser = argparse.ArgumentParser(description="Finetune a transformers model on a text classification task")
+    parser = argparse.ArgumentParser(description="Finetune a transformers model on a language translation task")
     parser.add_argument(
         "--dataset_name",
         type=str,
@@ -313,28 +313,25 @@ def parse_args():
 
     return args
 
-
 def main():
     # Parse the arguments
     args = parse_args()
 
-    # Sending telemetry. Tracking the example usage helps us better allocate resources to maintain them. The
-    # information sent is the one passed as arguments along with your Python/PyTorch versions.
-    send_example_telemetry("run_translation_no_trainer", args)
-
     # Initialize the accelerator. We will let the accelerator handle device placement for us in this example.
-    # If we're using tracking, we also need to initialize it here and it will by default pick up all supported trackers
-    # in the environment
+    # If we're using tracking, we also need to initialize it here and it will by default pick up all supported 
+    # trackers in the environment.
     accelerator = (
         Accelerator(log_with=args.report_to, project_dir=args.output_dir) if args.with_tracking else Accelerator()
     )
 
-    # Make one log on every process with the configuration for debugging.
+    accelerator.print(args)
+
     logging.basicConfig(
         format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
         datefmt="%m/%d/%Y %H:%M:%S",
         level=logging.INFO,
     )
+    # Make one log on every process with the configuration for debugging.
     logger.info(accelerator.state, main_process_only=False)
     if accelerator.is_local_main_process:
         datasets.utils.logging.set_verbosity_warning()
@@ -350,7 +347,7 @@ def main():
     # Handle the repository creation
     if accelerator.is_main_process:
         if args.push_to_hub:
-            # Retrieve of infer repo_name
+            # retrieve or infer repo_name
             repo_name = args.hub_model_id
             if repo_name is None:
                 repo_name = Path(args.output_dir).absolute().name
@@ -366,6 +363,7 @@ def main():
                     gitignore.write("epoch_*\n")
         elif args.output_dir is not None:
             os.makedirs(args.output_dir, exist_ok=True)
+    
     accelerator.wait_for_everyone()
 
     # Get the datasets: you can either provide your own CSV/JSON/TXT training and evaluation files (see below)
@@ -377,8 +375,10 @@ def main():
     #
     # In distributed training, the load_dataset function guarantee that only one local process can concurrently
     # download the dataset.
+    #
+    # See more about loading any type of standard or custom dataset (from files, python dict, pandas DataFrame, etc) at
+    # https://huggingface.co/docs/datasets/loading_datasets.
     if args.dataset_name is not None:
-        # Downloading and loading a dataset from the hub.
         raw_datasets = load_dataset(args.dataset_name, args.dataset_config_name)
     else:
         data_files = {}
@@ -388,8 +388,6 @@ def main():
             data_files["validation"] = args.validation_file
         extension = args.train_file.split(".")[-1]
         raw_datasets = load_dataset(extension, data_files=data_files)
-    # See more about loading any type of standard or custom dataset (from files, python dict, pandas DataFrame, etc) at
-    # https://huggingface.co/docs/datasets/loading_datasets.
 
     # Load pretrained model and tokenizer
     #
@@ -405,11 +403,15 @@ def main():
 
     if args.tokenizer_name:
         tokenizer = AutoTokenizer.from_pretrained(
-            args.tokenizer_name, use_fast=not args.use_slow_tokenizer, trust_remote_code=args.trust_remote_code
+            args.tokenizer_name,
+            use_fast=not args.use_slow_tokenizer,
+            trust_remote_code=args.trust_remote_code
         )
     elif args.model_name_or_path:
         tokenizer = AutoTokenizer.from_pretrained(
-            args.model_name_or_path, use_fast=not args.use_slow_tokenizer, trust_remote_code=args.trust_remote_code
+            args.model_name_or_path,
+            use_fast=not args.use_slow_tokenizer,
+            trust_remote_code=args.trust_remote_code
         )
     else:
         raise ValueError(
@@ -426,7 +428,10 @@ def main():
         )
     else:
         logger.info("Training new model from scratch")
-        model = AutoModelForSeq2SeqLM.from_config(config, trust_remote_code=args.trust_remote_code)
+        model = AutoModelForSeq2SeqLM.from_config(
+            config=config,
+            trust_remote_code=args.trust_remote_code
+        )
 
     # We resize the embeddings only when necessary to avoid index errors. If you are creating a model from scratch
     # on a small vocab and want a smaller embedding size, remove this test.
@@ -471,7 +476,7 @@ def main():
     max_target_length = args.max_target_length
     padding = "max_length" if args.pad_to_max_length else False
 
-    def preprocess_function(examples):
+    def preprocess_batch(examples):
         inputs = [ex[source_lang] for ex in examples["translation"]]
         targets = [ex[target_lang] for ex in examples["translation"]]
         inputs = [prefix + inp for inp in inputs]
@@ -483,16 +488,15 @@ def main():
         # If we are padding here, replace all tokenizer.pad_token_id in the labels by -100 when we want to ignore
         # padding in the loss.
         if padding == "max_length" and args.ignore_pad_token_for_loss:
-            labels["input_ids"] = [
-                [(l if l != tokenizer.pad_token_id else -100) for l in label] for label in labels["input_ids"]
-            ]
+            labels["input_ids"] = [[l if l != tokenizer.pad_token_id else -100 for l in label] for label in labels["input_ids"]]
+
 
         model_inputs["labels"] = labels["input_ids"]
         return model_inputs
 
     with accelerator.main_process_first():
         processed_datasets = raw_datasets.map(
-            preprocess_function,
+            preprocess_batch,
             batched=True,
             num_proc=args.preprocessing_num_workers,
             remove_columns=column_names,
@@ -525,9 +529,16 @@ def main():
         )
 
     train_dataloader = DataLoader(
-        train_dataset, shuffle=True, collate_fn=data_collator, batch_size=args.per_device_train_batch_size
+        train_dataset,
+        shuffle=True,
+        collate_fn=data_collator,
+        batch_size=args.per_device_train_batch_size
     )
-    eval_dataloader = DataLoader(eval_dataset, collate_fn=data_collator, batch_size=args.per_device_eval_batch_size)
+    eval_dataloader = DataLoader(
+        eval_dataset,
+        collate_fn=data_collator,
+        batch_size=args.per_device_train_batch_size
+    )
 
     # Optimizer
     # Split weights in two groups, one with weight decay and the other not.
@@ -546,7 +557,7 @@ def main():
 
     # Scheduler and math around the number of training steps.
     overrode_max_train_steps = False
-    num_update_steps_per_epoch = math.ceil(len(train_dataloader) / args.gradient_accumulation_steps)
+    num_update_steps_per_epoch = math.ceil(len(train_dataloader) // args.gradient_accumulation_steps)
     if args.max_train_steps is None:
         args.max_train_steps = args.num_train_epochs * num_update_steps_per_epoch
         overrode_max_train_steps = True
@@ -583,7 +594,7 @@ def main():
             # TensorBoard cannot log Enums, need the raw value
             experiment_config["lr_scheduler_type"] = experiment_config["lr_scheduler_type"].value
             accelerator.init_trackers("translation_no_trainer", experiment_config)
-
+    
     metric = evaluate.load("sacrebleu")
 
     def postprocess_text(preds, labels):
@@ -602,8 +613,10 @@ def main():
     logger.info(f"  Total train batch size (w. parallel, distributed & accumulation) = {total_batch_size}")
     logger.info(f"  Gradient Accumulation steps = {args.gradient_accumulation_steps}")
     logger.info(f"  Total optimization steps = {args.max_train_steps}")
+
     # Only show the progress bar once on each machine.
     progress_bar = tqdm(range(args.max_train_steps), disable=not accelerator.is_local_main_process)
+    
     completed_steps = 0
     starting_epoch = 0
 
@@ -616,9 +629,10 @@ def main():
             # Get the most recent checkpoint
             dirs = [f.name for f in os.scandir(os.getcwd()) if f.is_dir()]
             dirs.sort(key=os.path.getctime)
-            path = dirs[-1]  # Sorts folders by date modified, most recent checkpoint is the last
+            path = dirs[-1] # Sorts folders by date modified, most recent checkpoint is the last
             checkpoint_path = path
             path = os.path.basename(checkpoint_path)
+        
 
         accelerator.print(f"Resumed from checkpoint: {checkpoint_path}")
         accelerator.load_state(checkpoint_path)
@@ -626,15 +640,18 @@ def main():
         training_difference = os.path.splitext(path)[0]
 
         if "epoch" in training_difference:
+            # if the checkpointing strategy was "epoch"
             starting_epoch = int(training_difference.replace("epoch_", "")) + 1
             resume_step = None
             completed_steps = starting_epoch * num_update_steps_per_epoch
         else:
+            # if the checkpointing strategy was "steps"
             # need to multiply `gradient_accumulation_steps` to reflect real steps
             resume_step = int(training_difference.replace("step_", "")) * args.gradient_accumulation_steps
             starting_epoch = resume_step // len(train_dataloader)
             completed_steps = resume_step // args.gradient_accumulation_steps
             resume_step -= starting_epoch * len(train_dataloader)
+
 
     # update the progress_bar if load from checkpoint
     progress_bar.update(completed_steps)
@@ -674,6 +691,16 @@ def main():
                 break
 
         model.eval()
+
+        # Couple of things to notice in the evaluation if we are using accelerator
+
+        # The first thing to note is that we use the generate() method to compute predictions, but this is a method on our 
+        # base model, not the wrapped model 🤗 Accelerate created in the prepare() method. That’s why we unwrap the model 
+        # first, then call this method
+
+        # The second thing is that, like with token classification, two processes may have padded the inputs and labels to 
+        # different shapes, so we use accelerator.pad_across_processes() to make the predictions and labels the same shape 
+        # before calling the gather() method. If we don’t do this, the evaluation will either error out or hang forever.
 
         if args.val_max_target_length is None:
             args.val_max_target_length = args.max_target_length
@@ -720,10 +747,13 @@ def main():
                         samples_seen += len(decoded_labels)
 
                 metric.add_batch(predictions=decoded_preds, references=decoded_labels)
+        
+        # per epoch metric
         eval_metric = metric.compute()
         logger.info({"bleu": eval_metric["score"]})
 
         if args.with_tracking:
+            # per epoch logging
             accelerator.log(
                 {
                     "bleu": eval_metric["score"],
@@ -768,6 +798,15 @@ def main():
         with open(os.path.join(args.output_dir, "all_results.json"), "w") as f:
             json.dump({"eval_bleu": eval_metric["score"]}, f)
 
+def test():
+    # Parse the arguments
+    args = parse_args()
+
+    # Replace this with your own checkpoint
+    model_checkpoint = args.hub_model_id if args.hub_model_id is not None else args.output_dir
+    translator = pipeline("translation", model=model_checkpoint)
+    translator("Default to expanded threads")
 
 if __name__ == "__main__":
     main()
+    # test()
