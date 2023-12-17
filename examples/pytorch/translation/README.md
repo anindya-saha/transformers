@@ -176,7 +176,42 @@ python run_translation_no_trainer.py \
     --dataset_config_name ro-en \
     --output_dir ~/tmp/tst-translation
 ```
-
+ORIGINAL
+```bash
+python3 run_translation_no_trainer.py \
+    --model_name_or_path Helsinki-NLP/opus-mt-en-ro \
+    --source_lang en \
+    --target_lang ro \
+    --dataset_name wmt16 \
+    --dataset_config_name ro-en \
+    --ignore_pad_token_for_loss True \
+    --per_device_eval_batch_size 8 \
+    --per_device_train_batch_size 8 \
+    --num_train_epochs 3 \
+    --num_warmup_steps 0 \
+    --output_dir ~/tmp/tst-translation \
+    --push_to_hub \
+    --hub_token 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 \
+    --hub_model_id asaha-cdcp/marian-finetuned-wmt16-en-to-fr-accelerate
+```
+CUSTOM
+```bash
+python3 run_translation_no_trainer_practice.py \
+    --model_name_or_path Helsinki-NLP/opus-mt-en-ro \
+    --source_lang en \
+    --target_lang ro \
+    --dataset_name wmt16 \
+    --dataset_config_name ro-en \
+    --ignore_pad_token_for_loss True \
+    --per_device_eval_batch_size 8 \
+    --per_device_train_batch_size 8 \
+    --num_train_epochs 3 \
+    --num_warmup_steps 0 \
+    --output_dir ~/tmp/tst-translation \
+    --push_to_hub \
+    --hub_token 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 \
+    --hub_model_id asaha-cdcp/marian-finetuned-wmt16-en-to-fr-accelerate
+```
 You can then use your usual launchers to run in it in a distributed environment, but the easiest way is to run
 
 ```bash
@@ -205,22 +240,44 @@ accelerate launch --config_file accelerator_config.yaml run_translation_no_train
     --num_warmup_steps 0 \
     --output_dir ~/tmp/tst-translation \
 ```
-
+CUSTOM
 ```bash
 # support push to HF hub
-accelerate launch --config_file accelerator_config.yaml run_translation_no_trainer.py \
+accelerate launch --config_file accelerator_config.yaml run_translation_no_trainer_practice.py \
     --model_name_or_path Helsinki-NLP/opus-mt-en-ro \
     --source_lang en \
     --target_lang ro \
     --dataset_name wmt16 \
     --dataset_config_name ro-en \
     --ignore_pad_token_for_loss True \
-    --per_device_eval_batch_size 32 \
-    --per_device_train_batch_size 32 \
+    --per_device_eval_batch_size 8 \
+    --per_device_train_batch_size 8 \
     --num_train_epochs 3 \
     --num_warmup_steps 0 \
     --output_dir ~/tmp/tst-translation \
-    --push_to_hub --hub_token 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 --hub_model_id asaha-cdcp/marian-finetuned-wmt16-en-to-fr-accelerate
+    --push_to_hub \
+    --hub_token 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 \
+    --hub_model_id asaha-cdcp/marian-finetuned-wmt16-en-to-fr-accelerate
+
+```
+ORIGINAL
+```bash
+CUDA_LAUNCH_BLOCKING=1, accelerate launch --config_file default_config.yaml run_translation_no_trainer.py \
+    --model_name_or_path Helsinki-NLP/opus-mt-en-ro \
+    --source_lang en \
+    --target_lang ro \
+    --dataset_name wmt16 \
+    --dataset_config_name ro-en \
+    --ignore_pad_token_for_loss True \
+    --per_device_eval_batch_size 16 \
+    --per_device_train_batch_size 16 \
+    --num_train_epochs 3 \
+    --num_warmup_steps 0 \
+    --output_dir ~/tmp/tst-translation \
+    --push_to_hub \
+    --hub_token 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 \
+    --hub_model_id asaha-cdcp/marian-finetuned-wmt16-en-to-fr-accelerate
+
 ```
 
 ```bash
