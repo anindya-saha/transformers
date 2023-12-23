@@ -167,3 +167,12 @@ pipe = pipeline(task="text-generation", model=model, tokenizer=tokenizer, max_le
 result = pipe(f"<s>[INST] {prompt} [/INST]")
 print(result[0]['generated_text'])
 ```
+
+### Debugging the script
+Start your script without `accelerate` as a normal python program and read the `args` from a file. 
+
+Create a file `sft.args` and put all arguments where each line corresponds to a single argument and 
+its value, with the flags set as needed.
+
+Modify the `parser.parse_args_into_dataclasses(look_for_args_file=True)` to have the flag 
+`look_for_args_file=True` so that it looks for a file `sft.args` instead of `sys.argv`

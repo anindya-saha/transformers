@@ -109,7 +109,7 @@ class DataArguments:
 
 def main():
     parser = HfArgumentParser((ModelArguments, QuantizationArguments, PeftArguments, DataArguments, TrainingArguments))
-    model_args, quantz_args, peft_args, data_args, training_args = parser.parse_args_into_dataclasses()
+    model_args, quantz_args, peft_args, data_args, training_args = parser.parse_args_into_dataclasses(look_for_args_file=True)
     
     # Step 1: Load the model
     if quantz_args.load_in_8bit and quantz_args.load_in_4bit:
@@ -169,7 +169,7 @@ def main():
         hub_model_id=training_args.hub_model_id,
         hub_token=training_args.hub_token,
         gradient_checkpointing=training_args.gradient_checkpointing,
-        gradient_checkpointing_kwargs=training_args.gradient_checkpointing_kwargs,
+        #gradient_checkpointing_kwargs=training_args.gradient_checkpointing_kwargs,
         save_safetensors=True,
         resume_from_checkpoint=True,
         ddp_find_unused_parameters=False,
