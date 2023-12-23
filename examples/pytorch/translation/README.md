@@ -269,8 +269,8 @@ CUDA_LAUNCH_BLOCKING=1, accelerate launch --config_file default_config.yaml run_
     --dataset_name wmt16 \
     --dataset_config_name ro-en \
     --ignore_pad_token_for_loss True \
-    --per_device_eval_batch_size 16 \
-    --per_device_train_batch_size 16 \
+    --per_device_eval_batch_size 8 \
+    --per_device_train_batch_size 8 \
     --num_train_epochs 3 \
     --num_warmup_steps 0 \
     --output_dir ~/tmp/tst-translation \
