@@ -30,22 +30,27 @@ cp /home/anindya/.cache/huggingface/accelerate/default_config.yaml accelerate_co
 
 ### Launch Multi GPU training in one node
 ```bash
-accelerate launch --config_file accelerate_config.yaml sft.py \
+TRANSFORMERS_VERBOSITY=info accelerate launch --config_file accelerate_config.yaml sft.py \
     --model_name_or_path meta-llama/Llama-2-7b-hf \
     --dataset_name timdettmers/openassistant-guanaco \
-    --output_dir /tmp/llama2-guanaco \
+    --do_train \
+    --do_eval \
+    --output_dir ./tmp/llama2-guanaco \
     --load_in_4bit \
     --use_peft \
     --per_device_train_batch_size 4 \
     --gradient_accumulation_steps 2 \
     --bf16 \
     --num_train_epochs 10 \
-    --report_to wandb \
+    --report_to none \
+    --ddp_find_unused_parameters False \
     --push_to_hub True \
     --hub_private_repo True \
     --hub_model_id asaha-cdcp/llama2-guanaco \
     --hub_token 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
 ```
+The training is configured to resume from the last checkpoint. To avoid this behavior, change the `--output_dir` or 
+add `--overwrite_output_dir` to train from scratch.
 
 Additional optimizer parameters:
 
