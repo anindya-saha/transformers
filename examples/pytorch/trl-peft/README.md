@@ -155,20 +155,23 @@ Sat Dec 23 04:36:03 2023
 ### Test Fine Tuned Model
 
 ```python
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from peft import PeftModel, PeftConfig
+from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 
-model = AutoModelForCausalLM.from_pretrained(
-    '/home/anindya/transformers-asaha/examples/pytorch/trl-peft/tmp/llama2-guanaco/final', 
-    token='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', 
-    device_map='auto'
-)
+peft_model_id = '/home/anindya/transformers-asaha/examples/pytorch/trl-peft/tmp/llama2-guanaco/final'
+hub_token = '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'
+
+peft_config = PeftConfig.from_pretrained(peft_model_id, token=hub_token)
+base_model = AutoModelForCausalLM.from_pretrained(peft_config.base_model_name_or_path, token=hub_token)
+merged_model = PeftModel.from_pretrained(base_model, peft_model_id, token=hub_token)
+
 tokenizer = AutoTokenizer.from_pretrained(
-    '/home/anindya/transformers-asaha/examples/pytorch/trl-peft/tmp/llama2-guanaco/final', 
-    token='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'
+    peft_model_id, 
+    token=hub_token
 )
 
 prompt = "Who is Leonardo Da Vinci?"
-pipe = pipeline(task="text-generation", model=model, tokenizer=tokenizer, max_length=200)
+pipe = pipeline(task="text-generation", model=merged_model, tokenizer=tokenizer, max_length=200)
 result = pipe(f"<s>[INST] {prompt} [/INST]")
 print(result[0]['generated_text'])
 ```

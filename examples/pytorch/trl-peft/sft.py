@@ -24,7 +24,8 @@ from transformers import (
     AutoTokenizer, 
     BitsAndBytesConfig, 
     HfArgumentParser, 
-    TrainingArguments
+    TrainingArguments,
+    pipeline
 )
 
 from transformers.trainer_utils import (
@@ -33,7 +34,7 @@ from transformers.trainer_utils import (
     is_torch_tpu_available
 )
 
-from peft import LoraConfig
+from peft import PeftModel, PeftConfig, LoraConfig
 
 from trl import SFTTrainer, is_xpu_available
 
@@ -140,10 +141,12 @@ class DataArguments:
     )
 
 
-def main():
-    parser = HfArgumentParser((ModelArguments, QuantizationArguments, PeftArguments, DataArguments, TrainingArguments))
-    model_args, quantz_args, peft_args, data_args, training_args = parser.parse_args_into_dataclasses(look_for_args_file=False)
-
+def train(
+        model_args: ModelArguments, 
+        quantz_args: QuantizationArguments, 
+        peft_args: PeftArguments, 
+        data_args: DataArguments, 
+        training_args: TrainingArguments):
     # Setup logging
     logging.basicConfig(
         format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
@@ -338,5 +341,29 @@ def main():
     logger.info(f"Save model to {output_dir}")
     trainer.save_model(output_dir)
 
+def test(training_args: TrainingArguments):
+    
+    peft_model_id = os.path.join(training_args.output_dir, "final")
+    hub_token = training_args.hub_token
+
+    peft_config = PeftConfig.from_pretrained(peft_model_id, token=hub_token)
+    base_model = AutoModelForCausalLM.from_pretrained(peft_config.base_model_name_or_path, token=hub_token)
+    merged_model = PeftModel.from_pretrained(base_model, peft_model_id, token=hub_token)
+
+    tokenizer = AutoTokenizer.from_pretrained(
+        peft_model_id, 
+        token=hub_token
+    )
+
+    prompt = "Who is Leonardo Da Vinci?"
+    pipe = pipeline(task="text-generation", model=merged_model, tokenizer=tokenizer, max_length=200)
+    result = pipe(f"<s>[INST] {prompt} [/INST]")
+    print(result[0]['generated_text'])
+
 if __name__ == '__main__':
-    main()
+    parser = HfArgumentParser((ModelArguments, QuantizationArguments, PeftArguments, DataArguments, TrainingArguments))
+    model_args, quantz_args, peft_args, data_args, training_args = parser.parse_args_into_dataclasses(look_for_args_file=False)
+
+    train(model_args, quantz_args, peft_args, data_args, training_args)
+
+    test(training_args)
