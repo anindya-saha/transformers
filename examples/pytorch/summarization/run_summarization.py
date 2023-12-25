@@ -53,9 +53,9 @@ from transformers.utils.versions import require_version
 
 
 # Will error if the minimal version of Transformers is not installed. Remove at your own risks.
-check_min_version("4.37.0.dev0")
+#check_min_version("4.37.0.dev0")
 
-require_version("datasets>=1.8.0", "To fix: pip install -r examples/pytorch/summarization/requirements.txt")
+#require_version("datasets>=1.8.0", "To fix: pip install -r examples/pytorch/summarization/requirements.txt")
 
 logger = logging.getLogger(__name__)
 
@@ -677,14 +677,14 @@ def main():
         return result
 
     # Override the decoding parameters of Seq2SeqTrainer
-    training_args.generation_max_length = (
-        training_args.generation_max_length
-        if training_args.generation_max_length is not None
-        else data_args.val_max_target_length
-    )
-    training_args.generation_num_beams = (
-        data_args.num_beams if data_args.num_beams is not None else training_args.generation_num_beams
-    )
+    # training_args.generation_max_length = (
+    #     training_args.generation_max_length
+    #     if training_args.generation_max_length is not None
+    #     else data_args.val_max_target_length
+    # )
+    # training_args.generation_num_beams = (
+    #     data_args.num_beams if data_args.num_beams is not None else training_args.generation_num_beams
+    # )
 
     # Initialize our Trainer
     trainer = Seq2SeqTrainer(

@@ -39,6 +39,7 @@ and you also will find examples of these below.
 ## With Trainer
 
 Here is an example on a summarization task:
+
 ```bash
 python examples/pytorch/summarization/run_summarization.py \
     --model_name_or_path t5-small \
@@ -51,7 +52,25 @@ python examples/pytorch/summarization/run_summarization.py \
     --per_device_train_batch_size=4 \
     --per_device_eval_batch_size=4 \
     --overwrite_output_dir \
-    --predict_with_generate
+    --predict_with_generate \
+    --report_to none
+```
+
+You can also use `accelerate` to run this example on multiple GPUs:
+```bash
+TRANSFORMERS_VERBOSITY=info accelerate launch --config_file accelerate_config.yaml run_summarization.py \
+    --model_name_or_path t5-small \
+    --do_train \
+    --do_eval \
+    --dataset_name cnn_dailymail \
+    --dataset_config "3.0.0" \
+    --source_prefix "summarize: " \
+    --output_dir /tmp/tst-summarization \
+    --per_device_train_batch_size=4 \
+    --per_device_eval_batch_size=4 \
+    --overwrite_output_dir \
+    --predict_with_generate \
+    --report_to none
 ```
 
 Only T5 models `t5-small`, `t5-base`, `t5-large`, `t5-3b` and `t5-11b` must use an additional argument: `--source_prefix "summarize: "`.
