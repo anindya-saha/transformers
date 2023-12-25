@@ -36,6 +36,11 @@ For the old `finetune_trainer.py` and related utils, see [`examples/legacy/seq2s
 For custom datasets in `jsonlines` format please see: https://huggingface.co/docs/datasets/loading_datasets#json-files
 and you also will find examples of these below.
 
+Update pip packages:
+```bash
+pip install --upgrade trl bitsandbytes accelerate peft datasets sentencepiece evaluate rouge_score sacrebleu py7zr huggingface_hub
+```
+
 ## With Trainer
 
 Here is an example on a summarization task:
@@ -48,7 +53,7 @@ python examples/pytorch/summarization/run_summarization.py \
     --dataset_name cnn_dailymail \
     --dataset_config "3.0.0" \
     --source_prefix "summarize: " \
-    --output_dir /tmp/tst-summarization \
+    --output_dir ~/tmp/tst-summarization \
     --per_device_train_batch_size=4 \
     --per_device_eval_batch_size=4 \
     --overwrite_output_dir \
@@ -65,9 +70,9 @@ TRANSFORMERS_VERBOSITY=info accelerate launch --config_file accelerate_config.ya
     --dataset_name cnn_dailymail \
     --dataset_config "3.0.0" \
     --source_prefix "summarize: " \
-    --output_dir /tmp/tst-summarization \
-    --per_device_train_batch_size=4 \
-    --per_device_eval_batch_size=4 \
+    --output_dir ~/tmp/tst-summarization \
+    --per_device_train_batch_size 32 \
+    --per_device_eval_batch_size 32 \
     --overwrite_output_dir \
     --predict_with_generate \
     --report_to none
@@ -197,13 +202,14 @@ accelerate test
 that will check everything is ready for training. Finally, you can launch training with
 
 ```bash
-accelerate launch run_summarization_no_trainer.py \
+accelerate launch --config_file accelerate_config.yaml run_summarization_no_trainer.py \
     --model_name_or_path t5-small \
     --dataset_name cnn_dailymail \
     --dataset_config "3.0.0" \
     --source_prefix "summarize: " \
     --output_dir ~/tmp/tst-summarization
 ```
+
 
 This command is the same and will work for:
 

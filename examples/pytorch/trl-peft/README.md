@@ -1,6 +1,11 @@
 ## Examples of using peft with trl to finetune 8-bit models with Low Rank Adaption (LoRA)
 Ref: https://huggingface.co/docs/trl/v0.7.4/en/lora_tuning_peft
 
+### Update pip packages:
+```bash
+pip install --upgrade trl bitsandbytes accelerate peft datasets sentencepiece evaluate rouge_score sacrebleu py7zr huggingface_hub
+```
+
 ### Create an Accelerator Config for Multi GPU training
 ```bash
 $:~/transformers-asaha/examples/pytorch/trl-peft$ accelerate config
@@ -35,7 +40,7 @@ TRANSFORMERS_VERBOSITY=info accelerate launch --config_file accelerate_config.ya
     --dataset_name timdettmers/openassistant-guanaco \
     --do_train \
     --do_eval \
-    --output_dir ./tmp/llama2-guanaco \
+    --output_dir ~/tmp/llama2-guanaco \
     --load_in_4bit \
     --use_peft \
     --per_device_train_batch_size 4 \
@@ -44,8 +49,8 @@ TRANSFORMERS_VERBOSITY=info accelerate launch --config_file accelerate_config.ya
     --num_train_epochs 10 \
     --report_to none \
     --ddp_find_unused_parameters False \
-    --push_to_hub True \
-    --hub_private_repo True \
+    --push_to_hub \
+    --hub_private_repo \
     --hub_model_id asaha-cdcp/llama2-guanaco \
     --hub_token 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
 ```
@@ -183,4 +188,4 @@ Create a file `sft.args` and put all arguments where each line corresponds to a 
 its value, with the flags set as needed.
 
 Modify the `parser.parse_args_into_dataclasses(look_for_args_file=True)` to have the flag 
-`look_for_args_file=True` so that it looks for a file `sft.args` instead of `sys.argv`
+`look_for_args_file=True` so that it looks for a file `sft.args` instead of `sys.argv`.

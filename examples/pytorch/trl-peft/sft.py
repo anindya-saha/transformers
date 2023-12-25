@@ -362,7 +362,7 @@ def test(training_args: TrainingArguments):
 
 if __name__ == '__main__':
     parser = HfArgumentParser((ModelArguments, QuantizationArguments, PeftArguments, DataArguments, TrainingArguments))
-    model_args, quantz_args, peft_args, data_args, training_args = parser.parse_args_into_dataclasses(look_for_args_file=False)
+    model_args, quantz_args, peft_args, data_args, training_args = parser.parse_args_into_dataclasses()
 
     train(model_args, quantz_args, peft_args, data_args, training_args)
 
