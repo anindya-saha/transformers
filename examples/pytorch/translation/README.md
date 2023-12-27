@@ -57,6 +57,43 @@ python examples/pytorch/translation/run_translation.py \
     --predict_with_generate
 ```
 
+```bash
+# support push to HF hub
+   --push_to_hub \
+    --hub_token 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 \
+    --hub_model_id asaha-cdcp/marian-finetuned-wmt16-en-to-fr-accelerate
+```
+
+```bash
+# support tracking with weights and biases (you need to set WANDB_API_KEY in the environment)
+    --report_to wandb
+```
+
+```bash
+# support tracking with tensorboard
+    --with_tracking --report_to tensorboard
+```
+
+### Run Distributed
+Marian model has a bug. It does not work with distributed setting. I logged an issue in HF https://github.com/huggingface/transformers/issues/28104.
+
+```bash
+accelerate launch --config_file accelerator_config.yaml run_translation.py \
+    --model_name_or_path Helsinki-NLP/opus-mt-en-ro \
+    --do_train \
+    --do_eval \
+    --source_lang en \
+    --target_lang ro \
+    --dataset_name wmt16 \
+    --dataset_config_name ro-en \
+    --output_dir /tmp/tst-translation \
+    --per_device_train_batch_size=4 \
+    --per_device_eval_batch_size=4 \
+    --overwrite_output_dir \
+    --predict_with_generate \
+    --report_to none
+```
+
 MBart and some T5 models require special handling.
 
 T5 models `t5-small`, `t5-base`, `t5-large`, `t5-3b` and `t5-11b` must use an additional argument: `--source_prefix "translate {source_lang} to {target_lang}"`. For example:
@@ -71,11 +108,30 @@ python examples/pytorch/translation/run_translation.py \
     --source_prefix "translate English to Romanian: " \
     --dataset_name wmt16 \
     --dataset_config_name ro-en \
-    --output_dir /tmp/tst-translation \
+    --output_dir ~/tmp/tst-translation \
     --per_device_train_batch_size=4 \
     --per_device_eval_batch_size=4 \
     --overwrite_output_dir \
     --predict_with_generate
+```
+
+### Run Distributed
+```bash
+accelerate launch --config_file accelerator_config.yaml run_translation.py \
+    --model_name_or_path t5-small \
+    --do_train \
+    --do_eval \
+    --source_lang en \
+    --target_lang ro \
+    --source_prefix "translate English to Romanian: " \
+    --dataset_name wmt16 \
+    --dataset_config_name ro-en \
+    --output_dir ~/tmp/tst-translation \
+    --per_device_train_batch_size=4 \
+    --per_device_eval_batch_size=4 \
+    --overwrite_output_dir \
+    --predict_with_generate \
+    --report_to none
 ```
 
 If you get a terrible BLEU score, make sure that you didn't forget to use the `--source_prefix` argument.
@@ -176,8 +232,9 @@ python run_translation_no_trainer.py \
     --dataset_config_name ro-en \
     --output_dir ~/tmp/tst-translation
 ```
-ORIGINAL
+
 ```bash
+# support push to HF hub
 python3 run_translation_no_trainer.py \
     --model_name_or_path Helsinki-NLP/opus-mt-en-ro \
     --source_lang en \
@@ -194,24 +251,7 @@ python3 run_translation_no_trainer.py \
     --hub_token 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 \
     --hub_model_id asaha-cdcp/marian-finetuned-wmt16-en-to-fr-accelerate
 ```
-CUSTOM
-```bash
-python3 run_translation_no_trainer_practice.py \
-    --model_name_or_path Helsinki-NLP/opus-mt-en-ro \
-    --source_lang en \
-    --target_lang ro \
-    --dataset_name wmt16 \
-    --dataset_config_name ro-en \
-    --ignore_pad_token_for_loss True \
-    --per_device_eval_batch_size 8 \
-    --per_device_train_batch_size 8 \
-    --num_train_epochs 3 \
-    --num_warmup_steps 0 \
-    --output_dir ~/tmp/tst-translation \
-    --push_to_hub \
-    --hub_token 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 \
-    --hub_model_id asaha-cdcp/marian-finetuned-wmt16-en-to-fr-accelerate
-```
+
 You can then use your usual launchers to run in it in a distributed environment, but the easiest way is to run
 
 ```bash
@@ -239,50 +279,6 @@ accelerate launch --config_file accelerator_config.yaml run_translation_no_train
     --num_train_epochs 3 \
     --num_warmup_steps 0 \
     --output_dir ~/tmp/tst-translation \
-```
-CUSTOM
-```bash
-# support push to HF hub
-accelerate launch --config_file accelerator_config.yaml run_translation_no_trainer_practice.py \
-    --model_name_or_path Helsinki-NLP/opus-mt-en-ro \
-    --source_lang en \
-    --target_lang ro \
-    --dataset_name wmt16 \
-    --dataset_config_name ro-en \
-    --ignore_pad_token_for_loss True \
-    --per_device_eval_batch_size 8 \
-    --per_device_train_batch_size 8 \
-    --num_train_epochs 3 \
-    --num_warmup_steps 0 \
-    --output_dir ~/tmp/tst-translation \
-    --push_to_hub \
-    --hub_token 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 \
-    --hub_model_id asaha-cdcp/marian-finetuned-wmt16-en-to-fr-accelerate
-
-```
-ORIGINAL
-```bash
-CUDA_LAUNCH_BLOCKING=1, accelerate launch --config_file default_config.yaml run_translation_no_trainer.py \
-    --model_name_or_path Helsinki-NLP/opus-mt-en-ro \
-    --source_lang en \
-    --target_lang ro \
-    --dataset_name wmt16 \
-    --dataset_config_name ro-en \
-    --ignore_pad_token_for_loss True \
-    --per_device_eval_batch_size 8 \
-    --per_device_train_batch_size 8 \
-    --num_train_epochs 3 \
-    --num_warmup_steps 0 \
-    --output_dir ~/tmp/tst-translation \
-    --push_to_hub \
-    --hub_token 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 \
-    --hub_model_id asaha-cdcp/marian-finetuned-wmt16-en-to-fr-accelerate
-
-```
-
-```bash
-# support tracking with tensorboard
-    --with_tracking --report_to tensorboard
 ```
 
 This command is the same and will work for:
